@@ -7,17 +7,13 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"strconv"
-	"strings"
 )
 
 var defaultFileName string = "problems.csv"
 
-type Question struct {
-	addend1 int
-	addend2 int
-	sign    string
-	result  int
+type Problem struct {
+	question string
+	result   string
 }
 
 func main() {
@@ -25,51 +21,29 @@ func main() {
 	// limit := flag.Int("limit", 30, "time limit for quiz in seconds (default 30)")
 	flag.Parse()
 
-	questions := ParseCsvFile(*csvFile)
-	correctAnswers := 0
+	problems := ParseCsvFile(*csvFile)
+	correct := 0
 	scanner := bufio.NewScanner(os.Stdin)
-	for i, q := range questions {
-		fmt.Printf("Problem # %d: %d %s %d = \n", i+1, q.addend1, q.sign, q.addend2)
+	for i, p := range problems {
+		fmt.Printf("Problem # %d: %s = \n", i+1, p.question)
 		scanner.Scan()
 		answer := scanner.Text()
-		if correctAnswer(q, answer) {
-			correctAnswers = correctAnswers + 1
+		if answer == p.result {
+			correct++
 		}
 	}
-	fmt.Printf("You scored %d out of %d", correctAnswers, len(questions))
+	fmt.Printf("You scored %d out of %d\n", correct, len(problems))
 }
 
-func correctAnswer(q Question, answer string) bool {
-	answerNum, err := strconv.Atoi(answer)
-	if err != nil {
-		fmt.Println("Error parsing result value:", err)
+func parseRowValues(row []string) Problem {
+	p := Problem{
+		question: row[0],
+		result:   row[1],
 	}
-	return q.addend1+q.addend2 == answerNum
+	return p
 }
 
-func parseRowValues(row []string) Question {
-	result, err := strconv.Atoi(row[1])
-	if err != nil {
-		fmt.Println("Error parsing result value:", row[1])
-	}
-	addend1, err := strconv.Atoi(strings.Split(row[0], "+")[0])
-	if err != nil {
-		fmt.Println("Error parsing addend1 value:", row[0])
-	}
-	addend2, err := strconv.Atoi(strings.Split(row[0], "+")[1])
-	if err != nil {
-		fmt.Println("Error parsing addend2 value:", row[0])
-	}
-	q := Question{
-		addend1: addend1,
-		addend2: addend2,
-		sign:    "+",
-		result:  result,
-	}
-	return q
-}
-
-func ParseCsvFile(filename string) []Question {
+func ParseCsvFile(filename string) []Problem {
 	f, err := os.Open(defaultFileName)
 	if err != nil {
 		fmt.Println("Error parsing the file:", filename)
@@ -78,7 +52,7 @@ func ParseCsvFile(filename string) []Question {
 	defer f.Close()
 	csvr := csv.NewReader(f)
 
-	var questions []Question
+	var problems []Problem
 	for {
 		row, err := csvr.Read()
 		if err != nil && err != io.EOF {
@@ -87,7 +61,7 @@ func ParseCsvFile(filename string) []Question {
 		if len(row) == 0 {
 			break
 		}
-		questions = append(questions, parseRowValues(row))
+		problems = append(problems, parseRowValues(row))
 	}
-	return questions
+	return problems
 }
