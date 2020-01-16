@@ -1,14 +1,18 @@
 package main
 
 import (
+	"flag"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 
-	"github.com/pmensik/url-shortener/urlshort"
+	"urlshort"
 )
 
 func main() {
 	mux := defaultMux()
+	yamlFile := flag.String("yaml", "routes.yml", "Optional route configuratio in YAML")
+	flag.Parse()
 
 	// Build the MapHandler using the mux as the fallback
 	pathsToUrls := map[string]string{
@@ -17,14 +21,11 @@ func main() {
 	}
 	mapHandler := urlshort.MapHandler(pathsToUrls, mux)
 
-	// Build the YAMLHandler using the mapHandler as the
-	// fallback
-	yaml := `
-- path: /urlshort
-  url: https://github.com/gophercises/urlshort
-- path: /urlshort-final
-  url: https://github.com/gophercises/urlshort/tree/solution
-`
+	//Build the YAMLHandler using the mapHandler as the fallback
+	yaml, err := readYaml(*yamlFile)
+	if err != nil {
+		panic(err)
+	}
 	yamlHandler, err := urlshort.YAMLHandler([]byte(yaml), mapHandler)
 	if err != nil {
 		panic(err)
@@ -41,4 +42,8 @@ func defaultMux() *http.ServeMux {
 
 func hello(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintln(w, "Hello, world!")
+}
+
+func readYaml(filename string) ([]byte, error) {
+	return ioutil.ReadFile(filename)
 }
